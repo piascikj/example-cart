@@ -1,6 +1,11 @@
 $(document).ready(function() {
   var products = [];
-  getProducts(showProducts);
+
+  // Get products and show the cart
+  getProducts(function(products) {
+    showProducts(products);
+    getCart(showCart);
+  });
 
   // Listen for add click
   $('#products').on('click', '.js-add-btn', function(evt) {
@@ -9,28 +14,51 @@ $(document).ready(function() {
     var quantity = $product.find('.js-quantity option:selected').val();
 
     getCart(function(cart) {
-      addToCart(product, quantity, function(cart) {
-        debugger;
-      });
+      cart.addItem(product, quantity, showCart);
     });
   });
 
-  function showProducts() {
+  // Listen for remove click
+  $('#cart').on('click', '.js-remove-btn', function(evt) {
+    var index = $(this).attr('data-item-index');
+    getCart(function(cart) {
+      cart.removeItem(index, showCart);
+    });
+  });
+
+  // Listen for update click
+  $('#cart').on('click', '.js-update-btn', function(evt) {
+    var index = $(this).attr('data-item-index');
+    var $product = $(this).closest('.js-product');
+    var quantity = $product.find('.js-quantity option:selected').val();
+    getCart(function(cart) {
+      cart.updateItem(index, quantity, showCart);
+    });
+  });
+
+  // Helpers ----------------------------------------------------------------------------------------------------------
+  function showProducts(products) {
     var template = _.template( $( ".products-template" ).html() );
     $('#products').html(template({products:products}));
     Holder.add_theme("bright").run();
+  }
+
+  function showCart(cart) {
+    var template = _.template( $( ".cart-template" ).html() );
+    $('#cart').html(template({cart:cart}))
   }
 
   function getProducts(cb) {
     $.getJSON('product', function(data) {
       products = data;
       if (_.isFunction(cb)) cb(data);
-    })
+    });
   }
 
   function getCart(cb) {
     var url = 'cart/' + getSession();
     $.getJSON(url, function(cart) {
+      extendCart(cart);
       if (_.isFunction(cb)) cb(cart);
     })
     .fail(function() {
@@ -39,22 +67,73 @@ $(document).ready(function() {
         type: 'POST',
         dataType: 'json',
         success: function(cart) {
+          extendCart(cart)
           if (_.isFunction(cb)) cb(cart);
         }
       });
     });
   }
 
-  function addToCart(product, quantity, cb) {
-    var url = 'cart/' + getSession() + '/' + product + '/' + quantity;
-    $.ajax({
-      url: url,
-      type: 'PUT',
-      dataType: 'json',
-      success: function(cart) {
-        if (_.isFunction(cb)) cb(cart);
-      }
-    });
+  function extendCart(cart) {
+    cart.itemTotal = function(item) {
+      var product = this.itemProduct(item);
+      return (product.price*.01*item.quantity);
+    };
+
+    cart.itemProduct = function(item) {
+      return _.find(products, {id:item.product});
+    };
+
+    cart.total = function() {
+      var self = this;
+      var total = 0;
+      _.each(this.items, function(item) {
+        total += self.itemTotal(item);
+      });
+
+      return total;
+    };
+
+    cart.removeItem = function(index, cb) {
+      var url = 'cart/' + getSession() + '/' + index;
+      $.ajax({
+        url: url,
+        type: 'DELETE',
+        dataType: 'json',
+        success: function(cart) {
+          extendCart(cart)
+          if (_.isFunction(cb)) cb(cart);
+        }
+      });
+    };
+
+    cart.updateItem = function(index, quantity, cb) {
+      var url = 'cart/' + getSession() + '/' + index + '/' + quantity;
+      $.ajax({
+        url: url,
+        type: 'PATCH',
+        dataType: 'json',
+        success: function(cart) {
+          extendCart(cart)
+          if (_.isFunction(cb)) cb(cart);
+        }
+      });
+    }
+
+    cart.addItem = function(product, quantity, cb) {
+       var url = 'cart/' + getSession() + '/' + product + '/' + quantity;
+       $.ajax({
+         url: url,
+         type: 'PUT',
+         dataType: 'json',
+         success: function(cart) {
+           extendCart(cart);
+           if (_.isFunction(cb)) cb(cart);
+         }
+       });
+     };
+
+    return cart;
   }
 
   function getSession() {

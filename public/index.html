@@ -5,21 +5,26 @@
         <link href="//cdnjs.cloudflare.com/ajax/libs/font-awesome/4.1.0/css/font-awesome.min.css" rel="stylesheet"/>
     </head>
     <body>
-    <div class="container">
+    <div class="container-fluid">
         <h1>Dish cart products</h1>
-        <div id="products">
+        <div id="products" class="col-md-8">
             <h2>Loading products <i class="fa fa-refresh fa-spin"></i></h2>
+        </div>
+        <div id="cart" class="col-md-4">
+            <h2>No items in cart</h2>
         </div>
     </div>
     <script type="text/template" class="products-template">
+        <h2>Products</h2>
         <% _.each(products, function(product) { %>
-        <div class="col-sm-6 col-md-4">
+        <div class="col-sm-4 col-md-3">
             <div class="thumbnail">
-                <img data-src="holder.js/300x200/#bff2a7:#98c185" alt="<%= product.name %>">
+                <img data-src="holder.js/250x200/#bff2a7:#98c185" alt="<%= product.name %>">
                 <div class="caption js-product" data-id="<%= product.id %>">
                     <h3><%= product.name %></h3>
                     <p><%= product.description %></p>
-                    <div class="input-group col-md-6">
+                    <p>$<%= (product.price*.01).toFixed(2) %></p>
+                    <div class="input-group">
                         <span class="input-group-btn">
                             <button class="btn btn-primary js-add-btn" type="button">Add <i class="fa fa-shopping-cart"></i></button>
                         </span>
@@ -33,6 +38,40 @@
                             <option>24</option>
                         </select>
                     </div>
+                </div>
+            </div>
+        </div>
+        <% }); %>
+    </script>
+
+    <script type="text/template" class="cart-template">
+        <h2>Cart : $<%= cart.total().toFixed(2) %></h2>
+        <% _.each(cart.items, function(item, index) {
+            var product = cart.itemProduct(item);
+        %>
+        <div class="thumbnail">
+            <div class="caption js-product" data-id="<%= product.id %>">
+                <h3><%= product.name %></h3>
+                <p><%= product.description %></p>
+                <p>$<%= cart.itemTotal(item).toFixed(2) %></p>
+                <div class="input-group">
+                    <span class="input-group-btn">
+                        <button class="btn btn-primary js-update-btn" type="button" data-item-index="<%= index %>">Update <i class="fa fa-shopping-cart"></i></button>
+                    </span>
+
+                    <select class="form-control js-quantity">
+                        <option <%= (item.quantity == 4)?"selected":"" %>>4</option>
+                        <option <%= (item.quantity == 8)?"selected":"" %>>8</option>
+                        <option <%= (item.quantity == 12)?"selected":"" %>>12</option>
+                        <option <%= (item.quantity == 16)?"selected":"" %>>16</option>
+                        <option <%= (item.quantity == 20)?"selected":"" %>>20</option>
+                        <option <%= (item.quantity == 24)?"selected":"" %>>24</option>
+                    </select>
+
+                    <span class="input-group-btn">
+                        <button class="btn btn-primary js-remove-btn" type="button" data-item-index="<%= index %>">Remove <i class="fa fa-trash-o"></i></button>
+                    </span>
+
                 </div>
             </div>
         </div>
